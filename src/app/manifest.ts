@@ -5,16 +5,23 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "StoxMate",
     short_name: "StoxMate",
     description:
-      "Australia's AI investment analyst. Market intelligence, research and portfolio insights in one place.",
+      "AI-powered market intelligence, research and portfolio insights for Australian investors.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#0C1222",
     theme_color: "#0C1222",
     orientation: "portrait",
     icons: [
       {
-        src: "/icons/smicon.png",
-        sizes: "1024x1024",
+        src: "/icons/android/launchericon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/android/launchericon-512x512.png",
+        sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
