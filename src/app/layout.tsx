@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -59,6 +59,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0C1222",
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -66,7 +73,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-100 text-slate-900 antialiased">
+      <body className="bg-[#0C1222] text-slate-100 antialiased">
         {children}
       </body>
     </html>

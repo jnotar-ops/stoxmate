@@ -1,31 +1,55 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    min-height: 100%;
+    background-color: #0c1222;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-300;
+    min-height: 100dvh;
+    margin: 0;
+    background-color: #0c1222;
+
+    @apply text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-300;
+
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
   }
 }
 
-/* Custom scrollbar for data dense tables & drawers */
+/* Custom scrollbar for data-dense tables and drawers */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.6);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(51, 65, 85, 0.8);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 1);
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .animate-pulse-glow {
@@ -42,6 +66,7 @@
 .glass-panel-hover {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .glass-panel-hover:hover {
   background: rgba(30, 41, 59, 0.8);
   border-color: rgba(16, 185, 129, 0.4);
