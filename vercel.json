@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/internal/ingest/quotes",
+      "schedule": "*/30 * * * 1-5"
+    },
+    {
+      "path": "/api/internal/ingest/quotes?type=forex",
+      "schedule": "15 * * * 1-5"
+    },
+    {
+      "path": "/api/internal/ingest/crypto",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/internal/ingest/fundamentals",
+      "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/internal/ingest/market-status",
+      "schedule": "*/5 * * * 1-5"
+    }
+  ]
+}

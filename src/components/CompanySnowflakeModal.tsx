@@ -51,9 +51,11 @@ export default function CompanySnowflakeModal({
     { subject: "Past Performance Track", value: company.pastPerformanceScore || 85, fullMark: 100 },
   ];
 
-  const priceDiff = company.currentPrice - company.fairValue;
-  const isUndervalued = priceDiff < 0;
-  const percentDiff = Math.abs((priceDiff / company.fairValue) * 100).toFixed(1);
+  const hasPrice = typeof company.currentPrice === "number";
+  const hasFairValue = typeof company.fairValue === "number" && company.fairValue !== 0;
+  const priceDiff = hasPrice && hasFairValue ? company.currentPrice - company.fairValue : null;
+  const isUndervalued = priceDiff !== null && priceDiff < 0;
+  const percentDiff = priceDiff === null ? null : Math.abs((priceDiff / company.fairValue) * 100).toFixed(1);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150 overflow-y-auto">
@@ -139,22 +141,22 @@ export default function CompanySnowflakeModal({
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-[11px] uppercase text-slate-400 font-semibold block">Current Price</span>
-                <div className="text-lg font-mono font-bold text-slate-100 mt-0.5">${company.currentPrice.toFixed(2)}</div>
-                <div className={`text-[11px] font-mono font-semibold flex items-center gap-0.5 ${company.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                  {company.dailyChangePercent >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  <span>{company.dailyChangePercent >= 0 ? "+" : ""}{company.dailyChangePercent.toFixed(2)}%</span>
+                <div className="text-lg font-mono font-bold text-slate-100 mt-0.5">{hasPrice ? `$${company.currentPrice.toFixed(2)}` : "Unavailable"}</div>
+                <div className={`text-[11px] font-mono font-semibold flex items-center gap-0.5 ${company.dailyChangePercent == null ? "text-slate-500" : company.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {company.dailyChangePercent == null ? null : company.dailyChangePercent >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  <span>{company.dailyChangePercent == null ? company.staleStatus : `${company.dailyChangePercent >= 0 ? "+" : ""}${company.dailyChangePercent.toFixed(2)}%`}</span>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-[11px] uppercase text-slate-400 font-semibold block">P/E Multiple</span>
-                <div className="text-lg font-mono font-bold text-slate-100 mt-0.5">{company.peRatio}x</div>
+                <div className="text-lg font-mono font-bold text-slate-100 mt-0.5">{company.peRatio == null ? "—" : `${company.peRatio}x`}</div>
                 <span className="text-[10px] text-slate-400">vs Sector Avg</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-[11px] uppercase text-slate-400 font-semibold block">Div Yield</span>
-                <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">{company.dividendYield}%</div>
+                <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">{company.dividendYield == null ? "—" : `${company.dividendYield}%`}</div>
                 <span className="text-[10px] text-slate-400">Trailing 12M</span>
               </div>
             </div>
@@ -169,13 +171,13 @@ export default function CompanySnowflakeModal({
                   </span>
                 </div>
                 <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isUndervalued ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
-                  {isUndervalued ? `Undervalued by ${percentDiff}%` : `Trading ${percentDiff}% Premium`}
+                  {percentDiff === null ? "Unavailable" : isUndervalued ? `Undervalued by ${percentDiff}%` : `Trading ${percentDiff}% Premium`}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between mb-2">
                 <div>
-                  <span className="text-2xl font-mono font-black text-slate-100">${company.fairValue.toFixed(2)}</span>
+                  <span className="text-2xl font-mono font-black text-slate-100">{hasFairValue ? `$${company.fairValue.toFixed(2)}` : "Unavailable"}</span>
                   <span className="text-xs text-slate-400 ml-1.5 font-medium">Target Estimate (AUD)</span>
                 </div>
                 <div className="text-right text-xs text-slate-400">
@@ -187,7 +189,7 @@ export default function CompanySnowflakeModal({
               <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden flex">
                 <div 
                   className={`h-full ${isUndervalued ? "bg-emerald-500" : "bg-amber-500"}`}
-                  style={{ width: `${Math.min(100, Math.max(20, (company.currentPrice / company.fairValue) * 70))}%` }}
+                  style={{ width: `${hasPrice && hasFairValue ? Math.min(100, Math.max(20, (company.currentPrice / company.fairValue) * 70)) : 0}%` }}
                 />
               </div>
             </div>
@@ -198,7 +200,7 @@ export default function CompanySnowflakeModal({
                 Company Profile & AI Summary
               </h4>
               <p className="text-sm text-slate-300 leading-relaxed font-normal">
-                {company.description}
+                {company.description ?? "Company reference data is available; research commentary has not been loaded."}
               </p>
             </div>
 
@@ -220,10 +222,10 @@ export default function CompanySnowflakeModal({
         <div className="px-6 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>AI Confidence Score: <strong className="text-slate-200 font-mono">{company.aiConfidenceScore}%</strong></span>
+            <span>AI Confidence Score: <strong className="text-slate-200 font-mono">{company.aiConfidenceScore == null ? "Unavailable" : `${company.aiConfidenceScore}%`}</strong></span>
           </div>
           <span className="text-[11px] text-slate-500">
-            Last AI analysis updated today at 8:00 AM AEST
+            {company.dataProvider ? `${company.dataProvider} · ${company.delayClassification} · ${company.staleStatus}` : "No provider quote stored"}
           </span>
         </div>
       </div>

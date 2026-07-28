@@ -131,7 +131,7 @@ export default function CommandBar({
                       Ask StoxMate AI Research Assistant
                     </span>
                     <span className="text-sm font-semibold text-slate-100 line-clamp-1">
-                      "{searchTerm}"
+                      &ldquo;{searchTerm}&rdquo;
                     </span>
                   </div>
                 </div>
@@ -194,17 +194,17 @@ export default function CommandBar({
                           </span>
                         </div>
                         <span className="text-[11px] text-slate-400">
-                          Cap: {c.marketCap} • PE: {c.peRatio}x • Yield: {c.dividendYield}%
+                          Cap: {c.marketCap} · PE: {c.peRatio == null ? "—" : `${c.peRatio}x`} · Yield: {c.dividendYield == null ? "—" : `${c.dividendYield}%`}
                         </span>
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-xs font-mono font-bold text-slate-100">${c.currentPrice.toFixed(2)}</div>
+                      <div className="text-xs font-mono font-bold text-slate-100">{c.currentPrice == null ? "Unavailable" : `$${c.currentPrice.toFixed(2)}`}</div>
                       <div className={`text-[10px] font-mono font-semibold ${
-                        c.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"
+                        c.dailyChangePercent == null ? "text-slate-500" : c.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"
                       }`}>
-                        {c.dailyChangePercent >= 0 ? "+" : ""}{c.dailyChangePercent.toFixed(2)}%
+                        {c.dailyChangePercent == null ? c.staleStatus : `${c.dailyChangePercent >= 0 ? "+" : ""}${c.dailyChangePercent.toFixed(2)}%`}
                       </div>
                     </div>
                   </button>
@@ -250,7 +250,7 @@ export default function CommandBar({
 
           {filteredCompanies.length === 0 && filteredInsights.length === 0 && searchTerm && (
             <div className="py-8 text-center text-slate-500 text-xs">
-              No matching ASX tickers found. Press Enter to ask StoxMate AI about "{searchTerm}".
+              No matching ASX tickers found. Press Enter to ask StoxMate AI about &ldquo;{searchTerm}&rdquo;.
             </div>
           )}
         </div>

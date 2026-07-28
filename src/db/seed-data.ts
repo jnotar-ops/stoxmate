@@ -3,6 +3,12 @@ import * as schema from "./schema";
 import { eq } from "drizzle-orm";
 
 export async function seedDatabaseIfNeeded() {
+  if (process.env.NODE_ENV === "production" || process.env.ENABLE_DEMO_MARKET_DATA !== "true") {
+    return {
+      seeded: false,
+      message: "Demo seed disabled. Production market data must come from provider ingestion.",
+    };
+  }
   try {
     // Check if digital asset intelligence is seeded; if not, clear and re-seed with all current fields
     const existingCrypto = await db.select().from(schema.cryptoAssets).limit(1);

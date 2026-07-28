@@ -146,7 +146,7 @@ export default function SubscriptionModal({
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>Unlimited "Ask StoxMate AI Analyst" Queries</span>
+                <span>Unlimited &ldquo;Ask StoxMate AI Analyst&rdquo; Queries</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />

@@ -59,6 +59,8 @@ export default function HoldingFormModal({
   useEffect(() => {
     if (!isOpen) return;
     if (mode === "edit" && holding) {
+      // Modal props intentionally reset the draft when the selected holding changes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedSymbol(holding.companyTicker);
       setUnits(String(holding.sharesCount));
       setBuyPrice(String(holding.averageBuyPrice));
@@ -71,7 +73,7 @@ export default function HoldingFormModal({
       setSelectedSymbol(preset);
       setUnits("");
       setBuyPrice(
-        presetCrypto ? String(presetCrypto.currentPriceAud) : presetEquity ? String(presetEquity.currentPrice) : ""
+        presetCrypto?.currentPriceAud != null ? String(presetCrypto.currentPriceAud) : presetEquity?.currentPrice != null ? String(presetEquity.currentPrice) : ""
       );
       setNotes("");
       setAssetTab(presetCrypto ? "CRYPTO" : "EQUITY");
@@ -128,11 +130,11 @@ export default function HoldingFormModal({
 
   const unitsNum = Number(units);
   const priceNum = Number(buyPrice);
-  const livePrice = selectedAsset?.price ?? 0;
-  const projectedValue = Number.isFinite(unitsNum) ? unitsNum * livePrice : 0;
+  const latestPrice = typeof selectedAsset?.price === "number" ? selectedAsset.price : null;
+  const projectedValue = Number.isFinite(unitsNum) && latestPrice !== null ? unitsNum * latestPrice : null;
   const projectedCost = Number.isFinite(unitsNum) && Number.isFinite(priceNum) ? unitsNum * priceNum : 0;
-  const projectedGain = projectedValue - projectedCost;
-  const projectedGainPct = projectedCost > 0 ? (projectedGain / projectedCost) * 100 : 0;
+  const projectedGain = projectedValue === null ? null : projectedValue - projectedCost;
+  const projectedGainPct = projectedGain !== null && projectedCost > 0 ? (projectedGain / projectedCost) * 100 : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,7 +249,7 @@ export default function HoldingFormModal({
                       type="button"
                       onClick={() => {
                         setSelectedSymbol(a.symbol);
-                        if (!buyPrice) setBuyPrice(String(a.price));
+                        if (!buyPrice && a.price != null) setBuyPrice(String(a.price));
                       }}
                       className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between gap-2 ${
                         isSelected
@@ -265,10 +267,10 @@ export default function HoldingFormModal({
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-xs font-mono font-bold text-slate-100">
-                          ${a.price >= 1000 ? a.price.toLocaleString("en-AU", { maximumFractionDigits: 0 }) : a.price.toFixed(2)}
+                          {a.price == null ? "Unavailable" : `$${a.price >= 1000 ? a.price.toLocaleString("en-AU", { maximumFractionDigits: 0 }) : a.price.toFixed(2)}`}
                         </div>
-                        <div className={`text-[10px] font-mono font-bold ${a.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          {a.change >= 0 ? "+" : ""}{a.change.toFixed(2)}%
+                        <div className={`text-[10px] font-mono font-bold ${a.change == null ? "text-slate-500" : a.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {a.change == null ? "No provider quote" : `${a.change >= 0 ? "+" : ""}${a.change.toFixed(2)}%`}
                         </div>
                       </div>
                     </button>
@@ -276,7 +278,7 @@ export default function HoldingFormModal({
                 })}
                 {filtered.length === 0 && (
                   <div className="col-span-full py-6 text-center text-xs text-slate-500">
-                    No matching assets in StoxMate's covered universe.
+                    No matching assets in StoxMate&rsquo;s covered universe.
                   </div>
                 )}
               </div>
@@ -333,19 +335,19 @@ export default function HoldingFormModal({
             </div>
           </div>
 
-          {/* Live preview */}
+          {/* Provider-price preview */}
           {selectedAsset && unitsNum > 0 && (
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div>
-                <span className="text-[10px] uppercase text-slate-500 font-bold block">Live Price</span>
+                <span className="text-[10px] uppercase text-slate-500 font-bold block">Latest Provider Price</span>
                 <span className="text-sm font-mono font-bold text-slate-100">
-                  ${livePrice >= 1000 ? livePrice.toLocaleString("en-AU", { maximumFractionDigits: 0 }) : livePrice.toFixed(2)}
+                  {latestPrice === null ? "Unavailable" : `$${latestPrice >= 1000 ? latestPrice.toLocaleString("en-AU", { maximumFractionDigits: 0 }) : latestPrice.toFixed(2)}`}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] uppercase text-slate-500 font-bold block">Market Value</span>
                 <span className="text-sm font-mono font-bold text-slate-100">
-                  ${projectedValue.toLocaleString("en-AU", { maximumFractionDigits: 2 })}
+                  {projectedValue === null ? "Unavailable" : `$${projectedValue.toLocaleString("en-AU", { maximumFractionDigits: 2 })}`}
                 </span>
               </div>
               <div>
@@ -356,8 +358,8 @@ export default function HoldingFormModal({
               </div>
               <div>
                 <span className="text-[10px] uppercase text-slate-500 font-bold block">Unrealised</span>
-                <span className={`text-sm font-mono font-bold ${projectedGain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                  {projectedGain >= 0 ? "+" : ""}${projectedGain.toLocaleString("en-AU", { maximumFractionDigits: 2 })} ({projectedGainPct.toFixed(1)}%)
+                <span className={`text-sm font-mono font-bold ${projectedGain === null ? "text-slate-500" : projectedGain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {projectedGain === null || projectedGainPct === null ? "Unavailable" : `${projectedGain >= 0 ? "+" : ""}$${projectedGain.toLocaleString("en-AU", { maximumFractionDigits: 2 })} (${projectedGainPct.toFixed(1)}%)`}
                 </span>
               </div>
             </div>

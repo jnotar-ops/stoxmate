@@ -1,22 +1,43 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { seedDatabaseIfNeeded } from "@/db/seed-data";
 import { eq, desc } from "drizzle-orm";
+import { readMarketInstruments, readProviderHealth } from "@/lib/market-data/repository";
+import { toLegacyMarketShape } from "@/lib/market-data/compatibility";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Ensure database is seeded with initial high-fidelity Australian & Global market data
-    await seedDatabaseIfNeeded();
-
     const [user] = await db.select().from(schema.users).limit(1);
-    const globalIndices = await db.select().from(schema.globalIndices);
-    const cryptoAssets = await db.select().from(schema.cryptoAssets).orderBy(desc(schema.cryptoAssets.marketCapVal));
-    const companies = await db.select().from(schema.asxCompanies).orderBy(desc(schema.asxCompanies.marketCapVal));
+    const [legacyGlobalIndices, legacyCryptoAssets, legacyCompanies, marketRecords, marketHealth] = await Promise.all([
+      db.select().from(schema.globalIndices),
+      db.select().from(schema.cryptoAssets),
+      db.select().from(schema.asxCompanies),
+      readMarketInstruments(),
+      readProviderHealth(),
+    ]);
+    const canonicalByLegacyIndex: Record<string, string> = {
+      "ASX 200": "ASX200",
+      "S&P 500": "SP500",
+      "NASDAQ": "NASDAQ",
+      "DOW": "DJIA",
+      "FTSE 100": "FTSE100",
+      "NIKKEI 225": "NIKKEI225",
+      "HANG SENG": "HANGSENG",
+      "DAX": "DAX",
+    };
+    const compatibility = toLegacyMarketShape(
+      marketRecords,
+      Object.fromEntries(legacyCompanies.map((row) => [row.ticker, row])),
+      Object.fromEntries(legacyCryptoAssets.map((row) => [row.symbol, row])),
+      Object.fromEntries(legacyGlobalIndices.map((row) => [canonicalByLegacyIndex[row.ticker] ?? row.ticker, row])),
+    );
+    const globalIndices = compatibility.indices;
+    const cryptoAssets = compatibility.cryptos;
+    const companies = compatibility.equities;
     const insights = await db.select().from(schema.aiInsights).orderBy(desc(schema.aiInsights.publishedAt));
-    const macro = await db.select().from(schema.macroIndicators);
+    const macro = compatibility.macroIndicators;
     const scenarios = await db.select().from(schema.scenarioModels);
     
     // Watchlist & items
@@ -44,6 +65,7 @@ export async function GET() {
       portfolios,
       portfolioHoldings,
       chatQueries,
+      marketHealth,
     });
   } catch (error) {
     console.error("Error fetching StoxMate data:", error);

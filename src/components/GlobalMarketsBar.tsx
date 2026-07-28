@@ -53,7 +53,8 @@ export default function GlobalMarketsBar({
       {/* Grid of Top Global Securities / Indices */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2.5">
         {indices.map((idxItem) => {
-          const isPos = idxItem.dailyChange >= 0;
+          const isAvailable = typeof idxItem.dailyChange === "number";
+          const isPos = isAvailable && idxItem.dailyChange >= 0;
           const isSelected = selectedIndex?.id === idxItem.id;
           return (
             <button
@@ -80,7 +81,7 @@ export default function GlobalMarketsBar({
               <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono font-semibold">
                 <span className={isPos ? "text-emerald-400 flex items-center gap-0.5" : "text-rose-400 flex items-center gap-0.5"}>
                   {isPos ? <TrendingUp className="w-3 h-3 flex-shrink-0" /> : <TrendingDown className="w-3 h-3 flex-shrink-0" />}
-                  <span>{isPos ? "+" : ""}{idxItem.dailyChangePercent.toFixed(2)}%</span>
+                  <span>{idxItem.dailyChangePercent == null ? "Unavailable" : `${isPos ? "+" : ""}${idxItem.dailyChangePercent.toFixed(2)}%`}</span>
                 </span>
               </div>
 
@@ -111,8 +112,8 @@ export default function GlobalMarketsBar({
                   <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                     {selectedIndex.currentValue}
                   </span>
-                  <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${selectedIndex.dailyChange >= 0 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/10 text-rose-400 border border-rose-500/30"}`}>
-                    {selectedIndex.dailyChange >= 0 ? "+" : ""}{selectedIndex.dailyChangePercent.toFixed(2)}% ({selectedIndex.status})
+                  <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${selectedIndex.dailyChange == null ? "bg-slate-800 text-slate-400" : selectedIndex.dailyChange >= 0 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/10 text-rose-400 border border-rose-500/30"}`}>
+                    {selectedIndex.dailyChangePercent == null ? `Unavailable (${selectedIndex.status})` : `${selectedIndex.dailyChange >= 0 ? "+" : ""}${selectedIndex.dailyChangePercent.toFixed(2)}% (${selectedIndex.status})`}
                   </span>
                 </div>
                 <span className="text-xs text-indigo-300 font-semibold mt-0.5 block">
@@ -134,7 +135,7 @@ export default function GlobalMarketsBar({
             <div className="md:col-span-8 space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
                 <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span>Why Does This International Benchmark Move Today's Australian Market?</span>
+                <span>Why Does This International Benchmark Move Today&rsquo;s Australian Market?</span>
               </div>
               <p className="text-sm text-slate-200 leading-relaxed font-normal bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
                 {selectedIndex.aiAsxImpactSummary}

@@ -44,6 +44,13 @@ export default function LegalComplianceFooter() {
           </button>
         </div>
 
+        <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-100/90 leading-relaxed">
+          <strong className="text-amber-300">Closed-beta market-data notice:</strong> ASX equity and index
+          prices may be delayed 15–20 minutes, are provided for informational purposes only, and are
+          sourced under a personal-use beta tier that is not licensed for redistribution. StoxMate must
+          move to a commercial market-data licence before public or paid launch.
+        </div>
+
         {/* Full Disclaimer Details */}
         {showFullDisclaimer && (
           <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-xs text-slate-300 leading-relaxed space-y-3 animate-in fade-in duration-200">
@@ -74,7 +81,7 @@ export default function LegalComplianceFooter() {
             </div>
             <span className="font-semibold text-slate-400">StoxMate Intelligence Pty Ltd</span>
             <span>•</span>
-            <span>Australia's Leading AI Investment Analyst</span>
+            <span>Australia&rsquo;s Leading AI Investment Analyst</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">

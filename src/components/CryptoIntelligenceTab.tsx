@@ -22,7 +22,10 @@ interface CryptoIntelligenceTabProps {
   onAskAi: (question: string) => void;
 }
 
-function CorrelationBar({ label, value }: { label: string; value: number }) {
+function CorrelationBar({ label, value }: { label: string; value: number | null | undefined }) {
+  if (typeof value !== "number") {
+    return <div className="flex items-center justify-between text-[10px] text-slate-500"><span>{label}</span><span>Unavailable</span></div>;
+  }
   const pct = Math.abs(value) * 100;
   const positive = value >= 0;
   return (
@@ -102,8 +105,8 @@ export default function CryptoIntelligenceTab({
               <span>Why It Explains the ASX</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Bitcoin's 0.68 correlation to the Nasdaq makes it one of the cleanest real-time reads on global liquidity —
-              the same force that drives ASX growth multiples and the AUD.
+              Digital-asset markets can provide a rapid signal about global liquidity, but correlation
+              changes over time and should not be treated as a live predictor of ASX performance.
             </p>
           </div>
 
@@ -150,7 +153,8 @@ export default function CryptoIntelligenceTab({
       {/* Asset cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filtered.map((c) => {
-          const isPos = c.dailyChangePercent >= 0;
+          const hasPrice = typeof c.currentPriceAud === "number";
+          const isPos = typeof c.dailyChangePercent === "number" && c.dailyChangePercent >= 0;
           const isRegulated = c.assetType !== "Digital Asset";
           return (
             <div
@@ -174,7 +178,7 @@ export default function CryptoIntelligenceTab({
                         {isRegulated ? "ASX Regulated Access" : "Direct Digital Asset"}
                       </span>
                       <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                        {c.riskLevel} Risk
+                        {c.riskLevel ? `${c.riskLevel} Risk` : "Risk not assessed"}
                       </span>
                     </div>
                   </div>
@@ -182,15 +186,15 @@ export default function CryptoIntelligenceTab({
 
                 <div className="text-right">
                   <div className="text-base font-mono font-black text-slate-100">
-                    ${c.currentPriceAud >= 1000
+                    {hasPrice ? `$${c.currentPriceAud >= 1000
                       ? c.currentPriceAud.toLocaleString("en-AU", { maximumFractionDigits: 0 })
-                      : c.currentPriceAud.toFixed(2)}
+                      : c.currentPriceAud.toFixed(2)}` : "Unavailable"}
                   </div>
                   <div className={`text-xs font-mono font-bold flex items-center justify-end gap-0.5 ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
                     {isPos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    <span>{isPos ? "+" : ""}{c.dailyChangePercent.toFixed(2)}%</span>
+                    <span>{c.dailyChangePercent == null ? c.staleStatus : `${isPos ? "+" : ""}${c.dailyChangePercent.toFixed(2)}%`}</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono">{c.marketCap}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">{c.marketCap} · {c.dataProvider ?? "no provider"} · {c.staleStatus}</div>
                 </div>
               </div>
 
@@ -203,7 +207,7 @@ export default function CryptoIntelligenceTab({
                       <span>Correlation Matrix (90-day)</span>
                     </span>
                     <span className="text-[10px] font-mono text-slate-500">
-                      Vol {c.volatility30d}% p.a.
+                      {c.volatility30d == null ? "Volatility unavailable" : `Vol ${c.volatility30d}% p.a.`}
                     </span>
                   </div>
                   <CorrelationBar label="vs ASX 200" value={c.correlationAsx200} />
@@ -218,7 +222,7 @@ export default function CryptoIntelligenceTab({
                     <strong className="text-emerald-300 font-bold uppercase text-[10px] tracking-wider block mb-0.5">
                       AI Evidence-Based Observation
                     </strong>
-                    {c.aiThesis}
+                    {c.aiThesis ?? "No AI observation is available for this asset."}
                   </div>
                 </div>
 
@@ -229,7 +233,7 @@ export default function CryptoIntelligenceTab({
                     <strong className="text-indigo-300 font-bold uppercase text-[10px] tracking-wider block mb-0.5">
                       Australian Access Route
                     </strong>
-                    {c.asxAccessRoute}
+                    {c.asxAccessRoute ?? "Direct digital-asset market data only."}
                   </div>
                 </div>
 
@@ -240,14 +244,14 @@ export default function CryptoIntelligenceTab({
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span>Key Risk</span>
                     </div>
-                    {c.aiRiskNote}
+                    {c.aiRiskNote ?? "Digital assets can experience substantial price volatility."}
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
                     <div className="flex items-center gap-1.5 text-slate-300 font-bold uppercase text-[10px] tracking-wider mb-1">
                       <Info className="w-3.5 h-3.5 text-emerald-400" />
                       <span>AU Regulatory & Tax</span>
                     </div>
-                    {c.regulatoryNote}
+                    {c.regulatoryNote ?? "Confirm current Australian tax and regulatory obligations independently."}
                   </div>
                 </div>
               </div>
@@ -256,7 +260,7 @@ export default function CryptoIntelligenceTab({
               <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{c.aiConfidenceScore}% Data Confidence</span>
+                  <span>{c.aiConfidenceScore == null ? "Confidence unavailable" : `${c.aiConfidenceScore}% Data Confidence`}</span>
                 </div>
 
                 <div className="flex items-center gap-2">

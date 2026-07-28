@@ -71,7 +71,21 @@ export default function StoxMateApp() {
   };
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    fetch("/api/data")
+      .then((response) => response.json())
+      .then((json) => {
+        if (!cancelled && json.success) setData(json);
+      })
+      .catch((error) => {
+        console.error("Failed to load StoxMate intelligence:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Handle Ask AI from any tab/component
@@ -278,10 +292,26 @@ export default function StoxMateApp() {
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
         macroIndicators={data?.macroIndicators || []}
         user={data?.user}
+        marketHealth={data?.marketHealth}
       />
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-8">
+        <div className={`rounded-2xl border px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-3 ${
+          data?.marketHealth?.status === "healthy"
+            ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-200"
+            : data?.marketHealth?.status === "degraded"
+              ? "border-amber-500/30 bg-amber-500/5 text-amber-100"
+              : "border-rose-500/30 bg-rose-500/5 text-rose-100"
+        }`}>
+          <span>
+            ASX quotes use Twelve Data’s closed-beta personal tier and may be delayed 15–20 minutes.
+            Stale values retain their provider timestamps.
+          </span>
+          <span className="font-mono text-[11px]">
+            {data?.marketHealth?.quoteCounts?.fresh ?? 0} fresh · {data?.marketHealth?.quoteCounts?.delayed ?? 0} delayed · {data?.marketHealth?.quoteCounts?.stale ?? 0} stale
+          </span>
+        </div>
         
         {/* Bloomberg-Style Top Global Securities Ribbon */}
         <GlobalMarketsBar 

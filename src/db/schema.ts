@@ -1,4 +1,17 @@
-import { pgTable, serial, text, integer, timestamp, boolean, real, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  real,
+  jsonb,
+  numeric,
+  uuid,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -40,6 +53,12 @@ export const asxCompanies = pgTable("asx_companies", {
   description: text("description").notNull(),
   logoUrl: text("logo_url"),
   lastAiAnalysisAt: timestamp("last_ai_analysis_at").defaultNow().notNull(),
+  dataProvider: text("data_provider").notNull().default("legacy_demo"),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }).notNull().defaultNow(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  delayClassification: text("delay_classification").notNull().default("demo"),
+  staleStatus: text("stale_status").notNull().default("unavailable"),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
 });
 
 export const globalIndices = pgTable("global_indices", {
@@ -55,6 +74,12 @@ export const globalIndices = pgTable("global_indices", {
   aiAsxImpactSummary: text("ai_asx_impact_summary").notNull(), // Direct bridge: Why does this international Index move local ASX stocks today?
   affectedAsxTickers: jsonb("affected_asx_tickers").notNull(), // Array e.g. ['BHP', 'WDS', 'CBA']
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  dataProvider: text("data_provider").notNull().default("legacy_demo"),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }).notNull().defaultNow(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  delayClassification: text("delay_classification").notNull().default("demo"),
+  staleStatus: text("stale_status").notNull().default("unavailable"),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
 });
 
 export const cryptoAssets = pgTable("crypto_assets", {
@@ -78,6 +103,12 @@ export const cryptoAssets = pgTable("crypto_assets", {
   regulatoryNote: text("regulatory_note").notNull(), // AUSTRAC / ATO CGT / ASIC framing
   imageUrl: text("image_url"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  dataProvider: text("data_provider").notNull().default("legacy_demo"),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }).notNull().defaultNow(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  delayClassification: text("delay_classification").notNull().default("demo"),
+  staleStatus: text("stale_status").notNull().default("unavailable"),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
 });
 
 export const aiInsights = pgTable("ai_insights", {
@@ -171,7 +202,175 @@ export const macroIndicators = pgTable("macro_indicators", {
   trend: text("trend").notNull(), // 'Rising', 'Falling', 'Stable', 'Volatile'
   aiImplicationForAsx: text("ai_implication_for_asx").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  dataProvider: text("data_provider").notNull().default("legacy_demo"),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }).notNull().defaultNow(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  delayClassification: text("delay_classification").notNull().default("demo"),
+  staleStatus: text("stale_status").notNull().default("unavailable"),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
 });
+
+/**
+ * Canonical market-data tables. These are server-owned and intentionally do
+ * not carry presentation strings or provider-specific response structures.
+ */
+export const instruments = pgTable("instruments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  canonicalSymbol: text("canonical_symbol").notNull().unique(),
+  providerSymbol: text("provider_symbol"),
+  name: text("name").notNull(),
+  assetClass: text("asset_class").notNull(),
+  exchange: text("exchange"),
+  mic: text("mic"),
+  currency: text("currency").notNull(),
+  region: text("region"),
+  sector: text("sector"),
+  industry: text("industry"),
+  unit: text("unit"),
+  status: text("status").notNull().default("ACTIVE"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("instruments_asset_class_idx").on(table.assetClass),
+  index("instruments_exchange_idx").on(table.exchange),
+]);
+
+export const marketQuotes = pgTable("market_quotes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  instrumentId: uuid("instrument_id").notNull().references(() => instruments.id, { onDelete: "cascade" }),
+  price: numeric("price", { precision: 30, scale: 10 }).notNull(),
+  previousClose: numeric("previous_close", { precision: 30, scale: 10 }),
+  open: numeric("open", { precision: 30, scale: 10 }),
+  high: numeric("high", { precision: 30, scale: 10 }),
+  low: numeric("low", { precision: 30, scale: 10 }),
+  absoluteChange: numeric("absolute_change", { precision: 30, scale: 10 }),
+  percentageChange: numeric("percentage_change", { precision: 20, scale: 8 }),
+  volume: numeric("volume", { precision: 30, scale: 4 }),
+  marketCap: numeric("market_cap", { precision: 30, scale: 2 }),
+  circulatingSupply: numeric("circulating_supply", { precision: 30, scale: 8 }),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  marketStatus: text("market_status").notNull().default("UNKNOWN"),
+  delayMinutes: integer("delay_minutes"),
+  delayClassification: text("delay_classification").notNull(),
+  freshnessStatus: text("freshness_status").notNull(),
+  provider: text("provider").notNull(),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
+  rawPayloadHash: text("raw_payload_hash"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("market_quotes_instrument_provider_uidx").on(table.instrumentId, table.provider),
+  index("market_quotes_freshness_idx").on(table.freshnessStatus),
+  index("market_quotes_fetched_at_idx").on(table.fetchedAt),
+]);
+
+export const marketQuoteHistory = pgTable("market_quote_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  instrumentId: uuid("instrument_id").notNull().references(() => instruments.id, { onDelete: "cascade" }),
+  price: numeric("price", { precision: 30, scale: 10 }).notNull(),
+  open: numeric("open", { precision: 30, scale: 10 }),
+  high: numeric("high", { precision: 30, scale: 10 }),
+  low: numeric("low", { precision: 30, scale: 10 }),
+  close: numeric("close", { precision: 30, scale: 10 }),
+  volume: numeric("volume", { precision: 30, scale: 4 }),
+  interval: text("interval").notNull().default("1D"),
+  observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+  provider: text("provider").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("market_quote_history_observation_uidx").on(
+    table.instrumentId,
+    table.provider,
+    table.interval,
+    table.observedAt,
+  ),
+]);
+
+export const companyFundamentals = pgTable("company_fundamentals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  instrumentId: uuid("instrument_id").notNull().references(() => instruments.id, { onDelete: "cascade" }),
+  marketCap: numeric("market_cap", { precision: 30, scale: 2 }),
+  peRatio: numeric("pe_ratio", { precision: 20, scale: 8 }),
+  forwardPeRatio: numeric("forward_pe_ratio", { precision: 20, scale: 8 }),
+  eps: numeric("eps", { precision: 20, scale: 8 }),
+  dividendYield: numeric("dividend_yield", { precision: 20, scale: 8 }),
+  bookValue: numeric("book_value", { precision: 30, scale: 10 }),
+  revenue: numeric("revenue", { precision: 30, scale: 2 }),
+  netIncome: numeric("net_income", { precision: 30, scale: 2 }),
+  fiftyTwoWeekHigh: numeric("fifty_two_week_high", { precision: 30, scale: 10 }),
+  fiftyTwoWeekLow: numeric("fifty_two_week_low", { precision: 30, scale: 10 }),
+  reportingPeriod: text("reporting_period"),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  provider: text("provider").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("company_fundamentals_instrument_provider_uidx").on(table.instrumentId, table.provider),
+]);
+
+export const dataProviders = pgTable("data_providers", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  assetClasses: jsonb("asset_classes").notNull(),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  commercialUseConfirmed: boolean("commercial_use_confirmed").notNull().default(false),
+  licenseTier: text("license_tier").notNull().default("personal_beta"),
+  licenceNotes: text("licence_notes"),
+  attribution: text("attribution"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const ingestionRuns = pgTable("ingestion_runs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  provider: text("provider").notNull(),
+  jobType: text("job_type").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  status: text("status").notNull(),
+  requestedCount: integer("requested_count").notNull().default(0),
+  successfulCount: integer("successful_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  errorSummary: text("error_summary"),
+  metadata: jsonb("metadata"),
+}, (table) => [
+  index("ingestion_runs_provider_started_idx").on(table.provider, table.startedAt),
+]);
+
+export const ingestionErrors = pgTable("ingestion_errors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ingestionRunId: uuid("ingestion_run_id").notNull().references(() => ingestionRuns.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  instrumentId: uuid("instrument_id").references(() => instruments.id, { onDelete: "set null" }),
+  providerSymbol: text("provider_symbol"),
+  errorCode: text("error_code").notNull(),
+  errorMessage: text("error_message").notNull(),
+  retryable: boolean("retryable").notNull().default(false),
+  rawContext: jsonb("raw_context"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("ingestion_errors_run_idx").on(table.ingestionRunId),
+]);
+
+export const forexRates = pgTable("forex_rates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  instrumentId: uuid("instrument_id").notNull().references(() => instruments.id, { onDelete: "cascade" }),
+  baseCurrency: text("base_currency").notNull(),
+  quoteCurrency: text("quote_currency").notNull(),
+  rate: numeric("rate", { precision: 30, scale: 10 }).notNull(),
+  previousClose: numeric("previous_close", { precision: 30, scale: 10 }),
+  dailyChangePercent: numeric("daily_change_percent", { precision: 20, scale: 8 }),
+  dataProvider: text("data_provider").notNull(),
+  providerTimestamp: timestamp("provider_timestamp", { withTimezone: true }).notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  delayClassification: text("delay_classification").notNull(),
+  staleStatus: text("stale_status").notNull().default("fresh"),
+  licenseTier: text("license_tier").notNull().default("commercial"),
+}, (table) => [
+  uniqueIndex("forex_rates_pair_provider_uidx").on(table.baseCurrency, table.quoteCurrency, table.dataProvider),
+]);
 
 export const scenarioModels = pgTable("scenario_models", {
   id: serial("id").primaryKey(),

@@ -25,6 +25,7 @@ interface NavbarProps {
   onOpenSubscription: () => void;
   macroIndicators: any[];
   user: any;
+  marketHealth?: any;
 }
 
 export default function Navbar({
@@ -34,20 +35,31 @@ export default function Navbar({
   onOpenSubscription,
   macroIndicators,
   user,
+  marketHealth,
 }: NavbarProps) {
   const isFoundingMember = user?.subscriptionTier === "FOUNDING_MEMBER" || user?.subscriptionTier === "PRO";
+  const hasDelayed = (marketHealth?.quoteCounts?.delayed ?? 0) > 0;
+  const monitoringLabel =
+    marketHealth?.status === "healthy"
+      ? hasDelayed ? "Market data delayed" : "Market monitoring active"
+      : marketHealth?.status === "degraded"
+        ? "Market data partially unavailable"
+        : "Market monitoring offline";
+  const monitoringTone =
+    marketHealth?.status === "healthy" && !hasDelayed ? "text-emerald-400" :
+    marketHealth?.status === "offline" || !marketHealth ? "text-rose-400" : "text-amber-400";
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
-      {/* Top Real-Time Macro Ticker Bar */}
+      {/* Provider-backed market status and macro ticker bar */}
       <div className="border-b border-slate-900 bg-slate-950/50 py-1.5 px-4 text-xs font-mono">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 overflow-x-auto whitespace-nowrap scrollbar-none">
           <div className="flex items-center gap-2 text-slate-400">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className={`flex h-2 w-2 rounded-full ${marketHealth?.status === "healthy" ? "bg-emerald-500" : marketHealth?.status === "degraded" ? "bg-amber-400" : "bg-rose-500"}`} />
             <span className="font-semibold text-slate-300">STOXMATE AI ENGINE:</span>
-            <span className="text-emerald-400">Continuous Market Monitoring Active</span>
+            <span className={monitoringTone}>{monitoringLabel}</span>
             <span className="text-slate-600">•</span>
-            <span>Researched 1,482 ASX announcements & news items today</span>
+            <span>{marketHealth ? `${marketHealth.quoteCounts?.stale ?? 0} stale · ${marketHealth.quoteCounts?.unavailable ?? 0} unavailable` : "Provider health unavailable"}</span>
           </div>
           
           <div className="flex items-center gap-6 text-slate-300 font-medium">
@@ -67,9 +79,7 @@ export default function Navbar({
               ))
             ) : (
               <>
-                <span className="text-slate-400">RBA Cash Rate: <strong className="text-slate-200">4.35%</strong> (Unchanged)</span>
-                <span className="text-slate-400">AUD/USD: <strong className="text-emerald-400">$0.6542 (+0.42%)</strong></span>
-                <span className="text-slate-400">Iron Ore: <strong className="text-slate-200">$102.50/t (-1.2%)</strong></span>
+                <span className="text-slate-500">Provider-backed market values are not available yet.</span>
               </>
             )}
           </div>
@@ -92,7 +102,7 @@ export default function Navbar({
                 AI Intelligence
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 -mt-0.5">Australia's AI Investment Analyst</p>
+            <p className="text-[10px] text-slate-400 -mt-0.5">Australia&rsquo;s AI Investment Analyst</p>
           </div>
         </div>
 

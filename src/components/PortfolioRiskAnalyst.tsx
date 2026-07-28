@@ -537,7 +537,7 @@ export default function PortfolioRiskAnalyst({
               </div>
               <h4 className="text-sm font-bold text-slate-200">Your watchlist is empty</h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Open the ASX Companies tab (or press ⌘K) and select "+ Watch" on any company to begin AI monitoring.
+                Open the ASX Companies tab and select &ldquo;+ Watch&rdquo; on any company to begin AI monitoring.
               </p>
             </div>
           ) : (

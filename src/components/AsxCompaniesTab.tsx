@@ -51,17 +51,17 @@ export default function AsxCompaniesTab({
     let valA = 0;
     let valB = 0;
     if (sortBy === "marketCap") {
-      valA = a.marketCapVal;
-      valB = b.marketCapVal;
+      valA = a.marketCapVal ?? Number.NEGATIVE_INFINITY;
+      valB = b.marketCapVal ?? Number.NEGATIVE_INFINITY;
     } else if (sortBy === "peRatio") {
-      valA = a.peRatio;
-      valB = b.peRatio;
+      valA = a.peRatio ?? Number.NEGATIVE_INFINITY;
+      valB = b.peRatio ?? Number.NEGATIVE_INFINITY;
     } else if (sortBy === "dividendYield") {
-      valA = a.dividendYield;
-      valB = b.dividendYield;
+      valA = a.dividendYield ?? Number.NEGATIVE_INFINITY;
+      valB = b.dividendYield ?? Number.NEGATIVE_INFINITY;
     } else if (sortBy === "dailyChange") {
-      valA = a.dailyChangePercent;
-      valB = b.dailyChangePercent;
+      valA = a.dailyChangePercent ?? Number.NEGATIVE_INFINITY;
+      valB = b.dailyChangePercent ?? Number.NEGATIVE_INFINITY;
     } else if (sortBy === "aiConfidence") {
       valA = a.aiConfidenceScore;
       valB = b.aiConfidenceScore;
@@ -192,7 +192,9 @@ export default function AsxCompaniesTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sorted.map((c) => {
           const isWatching = watchlistTickers.includes(c.ticker);
-          const isUndervalued = c.currentPrice < c.fairValue;
+          const hasPrice = typeof c.currentPrice === "number";
+          const hasFairValue = typeof c.fairValue === "number";
+          const isUndervalued = hasPrice && hasFairValue && c.currentPrice < c.fairValue;
           return (
             <div
               key={c.id}
@@ -235,21 +237,21 @@ export default function AsxCompaniesTab({
                 <div className="grid grid-cols-3 gap-2 py-3 border-y border-slate-800/80 my-3 text-center font-mono">
                   <div className="p-1.5 rounded bg-slate-950/60">
                     <span className="text-[10px] text-slate-400 uppercase font-sans block">Price</span>
-                    <span className="text-xs font-bold text-slate-100">${c.currentPrice.toFixed(2)}</span>
-                    <span className={`text-[10px] font-bold block ${c.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {c.dailyChangePercent >= 0 ? "+" : ""}{c.dailyChangePercent.toFixed(2)}%
+                    <span className="text-xs font-bold text-slate-100">{hasPrice ? `$${c.currentPrice.toFixed(2)}` : "Unavailable"}</span>
+                    <span className={`text-[10px] font-bold block ${c.dailyChangePercent == null ? "text-slate-500" : c.dailyChangePercent >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {c.dailyChangePercent == null ? c.staleStatus : `${c.dailyChangePercent >= 0 ? "+" : ""}${c.dailyChangePercent.toFixed(2)}%`}
                     </span>
                   </div>
 
                   <div className="p-1.5 rounded bg-slate-950/60">
                     <span className="text-[10px] text-slate-400 uppercase font-sans block">P/E Ratio</span>
-                    <span className="text-xs font-bold text-slate-200">{c.peRatio}x</span>
+                    <span className="text-xs font-bold text-slate-200">{c.peRatio == null ? "—" : `${c.peRatio}x`}</span>
                     <span className="text-[10px] text-slate-400 block">Multiple</span>
                   </div>
 
                   <div className="p-1.5 rounded bg-slate-950/60">
                     <span className="text-[10px] text-slate-400 uppercase font-sans block">Div Yield</span>
-                    <span className="text-xs font-bold text-emerald-400">{c.dividendYield}%</span>
+                    <span className="text-xs font-bold text-emerald-400">{c.dividendYield == null ? "—" : `${c.dividendYield}%`}</span>
                     <span className="text-[10px] text-slate-400 block">Trailing</span>
                   </div>
                 </div>
@@ -263,7 +265,7 @@ export default function AsxCompaniesTab({
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">AI Fair Value Target:</span>
                     <span className={`font-mono font-bold ${isUndervalued ? "text-emerald-400" : "text-amber-400"}`}>
-                      ${c.fairValue.toFixed(2)} ({isUndervalued ? "Undervalued" : "Premium"})
+                      {hasFairValue && hasPrice ? `$${c.fairValue.toFixed(2)} (${isUndervalued ? "Undervalued" : "Premium"})` : "Unavailable"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -283,6 +285,10 @@ export default function AsxCompaniesTab({
                   <span>View Snowflake</span>
                   <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </span>
+              </div>
+              <div className="mt-2 text-[10px] text-slate-500 font-mono">
+                {c.dataProvider ? `${c.dataProvider} · ${c.delayClassification} · ${c.staleStatus}` : "No provider quote stored"}
+                {c.providerTimestamp ? ` · ${new Date(c.providerTimestamp).toLocaleString("en-AU")}` : ""}
               </div>
             </div>
           );
