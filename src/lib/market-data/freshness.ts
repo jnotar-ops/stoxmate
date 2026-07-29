@@ -32,6 +32,10 @@ export function calculateFreshnessStatus(input: FreshnessInput): FreshnessStatus
     return ageMinutes > marketDataConfig.freshness.asxStaleAfterMinutes ? "STALE" : "DELAYED";
   }
 
+  if (input.delayClassification === "end_of_day") {
+    return ageMinutes <= marketDataConfig.freshness.eodStaleAfterHours * 60 ? "FRESH" : "STALE";
+  }
+
   return ageMinutes <= marketDataConfig.freshness.generalStaleAfterMinutes ? "FRESH" : "STALE";
 }
 

@@ -5,7 +5,7 @@ const intFromEnv = (name: string, fallback: number, minimum = 1) => {
 
 export const marketDataConfig = {
   providers: {
-    market: process.env.MARKET_DATA_PROVIDER ?? "twelve_data",
+    market: process.env.MARKET_DATA_PROVIDER ?? "marketstack",
     crypto: process.env.CRYPTO_DATA_PROVIDER ?? "coingecko",
     forex: process.env.FOREX_PROVIDER ?? "frankfurter",
   },
@@ -23,6 +23,7 @@ export const marketDataConfig = {
     cryptoFreshMinutes: intFromEnv("CRYPTO_FRESH_MINUTES", 10),
     cryptoStaleMinutes: intFromEnv("CRYPTO_STALE_MINUTES", 20),
     forexStaleMinutes: intFromEnv("FOREX_STALE_MINUTES", 36 * 60),
+    eodStaleAfterHours: intFromEnv("EOD_STALE_AFTER_HOURS", 96),
     fundamentalsFreshHours: intFromEnv("FUNDAMENTALS_FRESH_HOURS", 36),
     fundamentalsStaleHours: intFromEnv("FUNDAMENTALS_STALE_HOURS", 72),
   },

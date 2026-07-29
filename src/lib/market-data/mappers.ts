@@ -6,6 +6,7 @@ import {
   assertPlausibleQuote,
   calculatePercentageChange,
   coinGeckoMarketSchema,
+  marketstackEodQuoteSchema,
   twelveDataApiErrorSchema,
   twelveDataQuoteSchema,
 } from "./validation";
@@ -96,6 +97,93 @@ export function mapTwelveDataQuote(
     marketStatus: instrument.exchange === "ASX"
       ? calculateMarketStatus(fetchedAt)
       : quote.is_market_open ? "OPEN" : "CLOSED",
+    freshnessStatus: "FRESH",
+    licenseTier: "personal_beta",
+    rawPayloadHash: createHash("sha256").update(JSON.stringify(raw)).digest("hex"),
+  };
+  record.freshnessStatus = calculateFreshnessStatus(record);
+  return { record };
+}
+
+export function mapMarketstackEodQuote(
+  raw: unknown,
+  instrument: InstrumentDefinition,
+  fetchedAt: Date,
+): MappingResult {
+  const parsed = marketstackEodQuoteSchema.safeParse(raw);
+  if (!parsed.success) return malformed(instrument, parsed.error.issues.map((issue) => issue.message).join("; "));
+
+  const quote = parsed.data;
+  const returnedSymbol = quote.symbol.toUpperCase().split(".")[0];
+  const requestedSymbol = instrument.providerSymbol?.toUpperCase().split(".")[0];
+  if (returnedSymbol !== instrument.canonicalSymbol && returnedSymbol !== requestedSymbol) {
+    return {
+      error: {
+        providerSymbol: instrument.providerSymbol,
+        code: "SYMBOL_MISMATCH",
+        message: `Requested ${instrument.providerSymbol}, received ${quote.symbol}`,
+        retryable: false,
+      },
+    };
+  }
+
+  const returnedExchanges = [quote.exchange_code, quote.exchange]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toUpperCase());
+  const expectedExchanges = [instrument.exchange, instrument.mic]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toUpperCase());
+  if (
+    returnedExchanges.length > 0
+    && !returnedExchanges.some((value) => expectedExchanges.includes(value))
+  ) {
+    return {
+      error: {
+        providerSymbol: instrument.providerSymbol,
+        code: "EXCHANGE_MISMATCH",
+        message: `Expected ${expectedExchanges.join(" or ")}, received ${returnedExchanges.join(" and ")}`,
+        retryable: false,
+      },
+    };
+  }
+
+  const currency = quote.price_currency?.toUpperCase() ?? instrument.currency.toUpperCase();
+  if (currency !== instrument.currency.toUpperCase()) {
+    return {
+      error: {
+        providerSymbol: instrument.providerSymbol,
+        code: "CURRENCY_MISMATCH",
+        message: `Expected ${instrument.currency}, received ${currency}`,
+        retryable: false,
+      },
+    };
+  }
+
+  assertPlausibleQuote(quote.close, null, null);
+  const providerTimestamp = new Date(quote.date);
+  if (Number.isNaN(providerTimestamp.getTime())) return malformed(instrument, "Invalid Marketstack EOD date");
+
+  const record: NormalisedMarketQuote = {
+    canonicalSymbol: instrument.canonicalSymbol,
+    providerSymbol: instrument.providerSymbol!,
+    assetClass: instrument.assetClass,
+    price: quote.close,
+    currency,
+    previousClose: null,
+    open: quote.open,
+    high: quote.high,
+    low: quote.low,
+    volume: quote.volume,
+    absoluteChange: null,
+    percentageChange: null,
+    marketCap: null,
+    circulatingSupply: null,
+    providerTimestamp,
+    fetchedAt,
+    provider: "marketstack",
+    delayMinutes: null,
+    delayClassification: "end_of_day",
+    marketStatus: "CLOSED",
     freshnessStatus: "FRESH",
     licenseTier: "personal_beta",
     rawPayloadHash: createHash("sha256").update(JSON.stringify(raw)).digest("hex"),

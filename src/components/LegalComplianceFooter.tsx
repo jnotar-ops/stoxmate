@@ -45,10 +45,10 @@ export default function LegalComplianceFooter() {
         </div>
 
         <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-100/90 leading-relaxed">
-          <strong className="text-amber-300">Closed-beta market-data notice:</strong> ASX equity and index
-          prices may be delayed 15–20 minutes, are provided for informational purposes only, and are
-          sourced under a personal-use beta tier that is not licensed for redistribution. StoxMate must
-          move to a commercial market-data licence before public or paid launch.
+          <strong className="text-amber-300">Closed-beta market-data notice:</strong> Available ASX equity
+          prices are Marketstack end-of-day observations provided for evaluation and informational use.
+          The configured tier excludes commercial use, indices, commodities, and fundamentals. StoxMate
+          must move to an eligible commercial market-data licence before public or paid launch.
         </div>
 
         {/* Full Disclaimer Details */}

@@ -11,6 +11,7 @@ import {
   marketQuoteHistory,
   marketQuotes,
 } from "@/db/schema";
+import { marketDataConfig } from "./config";
 import { instrumentRegistry } from "./registry";
 import type {
   NormalisedFundamentals,
@@ -20,6 +21,15 @@ import type {
 
 export async function syncInstrumentRegistry(): Promise<Map<string, string>> {
   await db.insert(dataProviders).values([
+    {
+      code: "marketstack",
+      name: "Marketstack",
+      assetClasses: ["EQUITY"],
+      commercialUseConfirmed: false,
+      licenseTier: "personal_beta",
+      licenceNotes: "Free evaluation tier: 100 symbol-requests/month, EOD equities only, no commercial use.",
+      attribution: "End-of-day equity data provided by Marketstack.",
+    },
     {
       code: "twelve_data",
       name: "Twelve Data",
@@ -322,7 +332,11 @@ export async function readProviderHealth() {
     freshnessStatus: marketQuotes.freshnessStatus,
     count: sql<number>`count(*)::int`,
   }).from(marketQuotes).groupBy(marketQuotes.freshnessStatus);
-  const providers = ["twelve_data", "coingecko", "frankfurter"].map((provider) => {
+  const providers = [...new Set([
+    marketDataConfig.providers.market,
+    marketDataConfig.providers.crypto,
+    marketDataConfig.providers.forex,
+  ])].map((provider) => {
     const runs = latestRuns.filter((run) => run.provider === provider);
     const latest = runs[0] ?? null;
     const lastSuccess = runs.find((run) => run.status === "SUCCESS" || run.status === "PARTIAL_SUCCESS") ?? null;

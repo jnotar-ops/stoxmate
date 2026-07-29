@@ -13,13 +13,15 @@ export async function GET(
   return Response.json({
     data: record,
     metadata: {
-      providerAttribution: record.quote?.provider === "twelve_data"
-        ? "Market data provided by Twelve Data. ASX data may be delayed and is not licensed for redistribution."
-        : record.quote?.provider === "coingecko"
-          ? "Crypto market data provided by CoinGecko."
-          : record.quote?.provider === "frankfurter"
-            ? "Foreign-exchange reference rates provided by Frankfurter."
-            : null,
+      providerAttribution: record.quote?.provider === "marketstack"
+        ? "End-of-day equity data provided by Marketstack. The configured evaluation tier is not licensed for commercial use."
+        : record.quote?.provider === "twelve_data"
+          ? "Market data provided by Twelve Data. ASX data may be delayed and is not licensed for redistribution."
+          : record.quote?.provider === "coingecko"
+            ? "Crypto market data provided by CoinGecko."
+            : record.quote?.provider === "frankfurter"
+              ? "Foreign-exchange reference rates provided by Frankfurter."
+              : null,
     },
   });
 }

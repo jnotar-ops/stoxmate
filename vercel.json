@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/internal/ingest/quotes",
-      "schedule": "10 6 * * *"
+      "schedule": "10 6 1,8,15,22 * *"
     },
     {
       "path": "/api/internal/ingest/quotes?type=forex",

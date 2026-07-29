@@ -42,6 +42,37 @@ export const twelveDataApiErrorSchema = z.object({
   message: z.string(),
 });
 
+export const marketstackEodQuoteSchema = z.object({
+  open: nullableDecimalValueSchema,
+  high: nullableDecimalValueSchema,
+  low: nullableDecimalValueSchema,
+  close: decimalValueSchema,
+  volume: nullableDecimalValueSchema,
+  symbol: z.string().min(1),
+  exchange: z.string().optional(),
+  exchange_code: z.string().optional(),
+  price_currency: z.string().optional(),
+  date: z.string().min(1),
+});
+
+export const marketstackEodResponseSchema = z.object({
+  pagination: z.object({
+    limit: z.number().int().nonnegative(),
+    offset: z.number().int().nonnegative(),
+    count: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }).optional(),
+  data: z.array(z.unknown()),
+});
+
+export const marketstackApiErrorSchema = z.object({
+  error: z.object({
+    code: z.union([z.string(), z.number()]).optional(),
+    type: z.string().optional(),
+    message: z.string(),
+  }),
+});
+
 export const coinGeckoMarketSchema = z.object({
   id: z.string(),
   symbol: z.string(),

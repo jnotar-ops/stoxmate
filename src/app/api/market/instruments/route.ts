@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     data: records,
     metadata: {
       attribution: [
-        "Twelve Data: closed-beta personal-tier market data; ASX values may be delayed 15–20 minutes.",
+        "Marketstack: end-of-day ASX equity data from a non-commercial evaluation tier.",
         "CoinGecko: crypto prices in AUD.",
         "Frankfurter: daily foreign-exchange reference rates.",
       ],

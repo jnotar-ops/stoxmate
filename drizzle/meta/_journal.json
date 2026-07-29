@@ -8,6 +8,13 @@
       "when": 1785196404990,
       "tag": "20260727235324_phase1_market_data_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785221445806,
+      "tag": "20260728065045_baseline_schema_after_push",
+      "breakpoints": true
     }
   ]
 }

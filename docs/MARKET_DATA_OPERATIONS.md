@@ -19,24 +19,29 @@ All routes accept `Authorization: Bearer $CRON_SECRET` and also support
 - `GET|POST /api/internal/ingest/market-status`
 
 POST forces an authorised manual run. Scheduled GET quote runs execute only
-during the ASX session or the first 30 minutes after close, which keeps the
-Twelve Data free-tier call budget conservative.
+during the ASX session or the first 30 minutes after close. The deployed Hobby
+cron invokes Marketstack on the quota-safe dates below; the other routes run
+daily.
 
 ## Vercel schedules
 
 `vercel.json` uses UTC cron expressions:
 
-- Market quote trigger: every 30 minutes, weekdays; route-level ASX session
-  gating prevents closed-session provider calls.
-- Forex: hourly at minute 15, weekdays.
-- Crypto: every 15 minutes.
-- Fundamentals: daily at 18:30 UTC.
-- Market status: every 5 minutes, weekdays.
+- Market status: daily at 06:05 UTC.
+- Marketstack equity EOD batch: 06:10 UTC on days 1, 8, 15, and 22 each
+  month (80 billed symbol-requests).
+- Frankfurter forex: daily at 06:15 UTC.
+- CoinGecko crypto: daily at 06:20 UTC.
+- Fundamentals availability run: daily at 06:30 UTC.
 
-These frequencies require Vercel Pro or an alternative scheduler. Current
-Vercel Hobby scheduling permits only once-daily jobs. If the deployment is on
-Hobby, remove the sub-daily entries and configure an external scheduler against
-the same authenticated routes.
+Marketstack bills the EOD batch per symbol. One daily 20-equity batch would
+consume about 600 of the Free plan’s 100 monthly requests, despite using only
+one HTTP request per day. Four scheduled runs consume 80 requests and reserve
+20 for one manual verification run. Do not increase the cadence on Free.
+
+Live verification on 2026-07-28 returned 20/20 configured ASX equities. The
+combined quotes job reports 20/32 because all eight configured indices and all
+four configured commodities are intentionally unavailable on the Free plan.
 
 ## Public API
 
@@ -58,11 +63,11 @@ Example instrument response:
     },
     "quote": {
       "price": "42.5000000000",
-      "provider": "twelve_data",
-      "providerTimestamp": "2026-07-28T04:10:00.000Z",
-      "fetchedAt": "2026-07-28T04:31:00.000Z",
-      "delayClassification": "delayed_15_20min",
-      "freshnessStatus": "DELAYED",
+      "provider": "marketstack",
+      "providerTimestamp": "2026-07-27T00:00:00.000Z",
+      "fetchedAt": "2026-07-28T06:00:00.000Z",
+      "delayClassification": "end_of_day",
+      "freshnessStatus": "FRESH",
       "licenseTier": "personal_beta"
     }
   }

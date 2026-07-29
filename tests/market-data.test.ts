@@ -4,16 +4,18 @@ import asxSuccess from "./fixtures/twelve-asx-success.json";
 import indexSuccess from "./fixtures/twelve-index-success.json";
 import forexSuccess from "./fixtures/twelve-forex-success.json";
 import commoditySuccess from "./fixtures/twelve-commodity-success.json";
+import marketstackEodSuccess from "./fixtures/marketstack-eod-success.json";
 import coinGeckoSuccess from "./fixtures/coingecko-success.json";
 import invalidKey from "./fixtures/invalid-api-key.json";
 import rateLimit from "./fixtures/rate-limit.json";
 import unsupported from "./fixtures/unsupported-symbol.json";
 import malformed from "./fixtures/malformed-payload.json";
 import { calculateFreshnessStatus, staleCopy } from "../src/lib/market-data/freshness";
-import { mapCoinGeckoMarket, mapTwelveDataQuote } from "../src/lib/market-data/mappers";
+import { mapCoinGeckoMarket, mapMarketstackEodQuote, mapTwelveDataQuote } from "../src/lib/market-data/mappers";
 import { ASX_SESSION, calculateMarketStatus } from "../src/lib/market-data/market-status";
 import { getInstrument, getInstrumentByProviderSymbol, getInstruments } from "../src/lib/market-data/registry";
 import { classifyProviderError, ProviderHttpError } from "../src/lib/market-data/providers/http";
+import { toPublicIngestionError } from "../src/lib/market-data/route-errors";
 import { calculatePercentageChange } from "../src/lib/market-data/validation";
 
 const fetchedAt = new Date("2026-07-28T04:31:00.000Z");
@@ -51,6 +53,31 @@ test("CoinGecko mapping uses asset IDs and AUD market values", () => {
   assert.equal(mapped.record?.currency, "AUD");
   assert.equal(mapped.record?.price, "183456.12");
   assert.equal(mapped.record?.marketCap, "3650123456789");
+});
+
+test("Marketstack maps ASX EOD rows with end-of-day provenance", () => {
+  const raw = marketstackEodSuccess.data[0];
+  const instrument = { ...getInstrument("BHP")!, providerSymbol: "BHP.AX" };
+  const mapped = mapMarketstackEodQuote(raw, instrument, new Date("2026-07-28T06:00:00.000Z"));
+  assert.ok(mapped.record);
+  assert.equal(mapped.record.canonicalSymbol, "BHP");
+  assert.equal(mapped.record.price, "41.67");
+  assert.equal(mapped.record.provider, "marketstack");
+  assert.equal(mapped.record.delayClassification, "end_of_day");
+  assert.equal(mapped.record.delayMinutes, null);
+  assert.equal(mapped.record.marketStatus, "CLOSED");
+  assert.equal(mapped.record.freshnessStatus, "FRESH");
+});
+
+test("Marketstack rejects mismatched exchanges", () => {
+  const instrument = { ...getInstrument("BHP")!, providerSymbol: "BHP.AX" };
+  const raw = {
+    ...marketstackEodSuccess.data[0],
+    exchange: "XNYS",
+    exchange_code: "NYSE",
+  };
+  const mapped = mapMarketstackEodQuote(raw, instrument, new Date("2026-07-28T06:00:00.000Z"));
+  assert.equal(mapped.error?.code, "EXCHANGE_MISMATCH");
 });
 
 test("provider errors inside HTTP 200 responses are classified without retries for auth/symbol failures", () => {
@@ -93,6 +120,17 @@ test("freshness and stale fallback keep old values visible with an explicit stat
   assert.equal(staleCopy(status), "Latest provider refresh unavailable");
 });
 
+test("end-of-day freshness tolerates a normal weekend but eventually becomes stale", () => {
+  const base = {
+    assetClass: "EQUITY" as const,
+    providerTimestamp: new Date("2026-07-24T00:00:00.000Z"),
+    fetchedAt: new Date("2026-07-24T07:00:00.000Z"),
+    delayClassification: "end_of_day" as const,
+  };
+  assert.equal(calculateFreshnessStatus({ ...base, now: new Date("2026-07-27T06:00:00.000Z") }), "FRESH");
+  assert.equal(calculateFreshnessStatus({ ...base, now: new Date("2026-07-29T06:00:00.000Z") }), "STALE");
+});
+
 test("ASX sessions handle weekends, holidays and daylight-saving offsets", () => {
   assert.equal(calculateMarketStatus(new Date("2026-01-15T00:30:00.000Z")), "OPEN");
   assert.equal(calculateMarketStatus(new Date("2026-07-15T00:30:00.000Z")), "OPEN");
@@ -110,4 +148,20 @@ test("retry classification retries transient failures only", () => {
   const timeout = new Error("aborted");
   timeout.name = "AbortError";
   assert.equal(classifyProviderError(timeout).retryable, true);
+});
+
+test("ingestion route errors expose nested diagnostics without leaking connection URLs", () => {
+  const cause = Object.assign(
+    new Error("getaddrinfo ENOTFOUND base at postgresql://user:password@base/db"),
+    { code: "ENOTFOUND", hostname: "base" },
+  );
+  const error = new Error("Failed query: insert into ingestion_runs", { cause });
+  assert.deepEqual(toPublicIngestionError(error), {
+    message: "Failed query: insert into ingestion_runs",
+    cause: {
+      message: "getaddrinfo ENOTFOUND base at [redacted-url]",
+      code: "ENOTFOUND",
+      hostname: "base",
+    },
+  });
 });

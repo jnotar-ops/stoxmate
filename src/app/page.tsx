@@ -305,8 +305,8 @@ export default function StoxMateApp() {
               : "border-rose-500/30 bg-rose-500/5 text-rose-100"
         }`}>
           <span>
-            ASX quotes use Twelve Data’s closed-beta personal tier and may be delayed 15–20 minutes.
-            Stale values retain their provider timestamps.
+            Available ASX equities use Marketstack end-of-day data from a non-commercial evaluation tier.
+            Indices, commodities, and fundamentals remain unavailable until an eligible plan is configured.
           </span>
           <span className="font-mono text-[11px]">
             {data?.marketHealth?.quoteCounts?.fresh ?? 0} fresh · {data?.marketHealth?.quoteCounts?.delayed ?? 0} delayed · {data?.marketHealth?.quoteCounts?.stale ?? 0} stale
